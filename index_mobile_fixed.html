@@ -1,0 +1,2129 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Batalla contra el Jefe</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: white;
+            font-family: Arial, sans-serif;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+            overflow: hidden;
+        }
+        * {
+            -webkit-tap-highlight-color: rgba(0,0,0,0.1);
+        }
+        #gameCanvas {
+            border: 2px solid #333;
+            display: block;
+            touch-action: none;
+            pointer-events: auto;
+        }
+        .hidden {
+            display: none;
+        }
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #333;
+            z-index: 100;
+        }
+        #exitBtn {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #d32f2f;
+            color: white;
+            padding: 10px 30px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            display: none;
+            z-index: 1000;
+            touch-action: manipulation;
+        }
+        #exitBtn:hover {
+            background: #b71c1c;
+        }
+        .health-bar {
+            width: 200px;
+            height: 25px;
+            background: #ddd;
+            border: 2px solid #333;
+            margin: 5px 0;
+            position: relative;
+        }
+        .health-fill {
+            height: 100%;
+            transition: width 0.3s;
+        }
+        .player-health { background: #4CAF50; }
+        .boss-health { background: #f44336; }
+        #energyUI {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: #333;
+            text-align: center;
+            z-index: 100;
+        }
+        #bossControls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: none;
+            z-index: 1000;
+        }
+        .boss-ability {
+            width: 80px;
+            height: 80px;
+            margin: 10px;
+            background: #333;
+            border: 3px solid #666;
+            border-radius: 10px;
+            color: white;
+            font-size: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+        .boss-ability:hover:not(.cooldown) {
+            background: #444;
+            border-color: #888;
+        }
+        .boss-ability.cooldown {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .cooldown-overlay {
+            position: absolute;
+            bottom: 5px;
+            left: 5px;
+            right: 5px;
+            font-size: 12px;
+            color: #ff0000;
+            font-weight: bold;
+        }
+        #energyBar {
+            width: 150px;
+            height: 25px;
+            background: #ddd;
+            border: 2px solid #333;
+            margin: 10px 0;
+            position: relative;
+        }
+        #energyFill {
+            height: 100%;
+            background: linear-gradient(90deg, #FFD700, #FFA500);
+            transition: width 0.3s;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: rgba(0,0,0,0.1);
+            position: relative;
+            z-index: 10;
+        }
+        button:active {
+            transform: scale(0.95);
+            opacity: 0.8;
+        }
+        #throwBtn {
+            background: #FF5722;
+            color: white;
+            position: absolute;
+            display: none;
+            z-index: 1000;
+        }
+        #springBtn {
+            background: #9C27B0;
+            color: white;
+        }
+        #gameOver, #mainMenu, #levelSelect {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.9);
+            color: white;
+            padding: 40px;
+            border-radius: 10px;
+            text-align: center;
+            display: none;
+            z-index: 3000;
+            pointer-events: all;
+        }
+        #gameOver button {
+            pointer-events: all;
+        }
+        #mainMenu {
+            display: flex;
+            width: 700px;
+            height: 400px;
+            z-index: 3000;
+            pointer-events: all;
+        }
+        #mainMenu button {
+            pointer-events: all;
+        }
+        .menu-left {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-right: 2px solid #555;
+            padding-right: 20px;
+        }
+        .boss-button {
+            background: #8B0000 !important;
+        }
+        .boss-button:hover {
+            background: #a00000 !important;
+        }
+        .menu-right {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding-left: 20px;
+        }
+        .menu-button {
+            background: #4CAF50;
+            color: white;
+            width: 250px;
+            margin: 10px 0;
+            padding: 20px;
+            font-size: 20px;
+            min-height: 70px;
+        }
+        .menu-button:hover {
+            background: #45a049;
+        }
+        .warning-button {
+            background: #ff9800;
+        }
+        .warning-button:hover {
+            background: #e68900;
+        }
+        .custom-button {
+            background: #9C27B0;
+        }
+        .custom-button:hover {
+            background: #7B1FA2;
+        }
+        #levelSelect {
+            width: 500px;
+            z-index: 3000;
+            pointer-events: all;
+        }
+        #levelSelect button {
+            pointer-events: all;
+        }
+        #aiDifficultySelect {
+            width: 500px;
+            z-index: 3000;
+            pointer-events: all;
+        }
+        #aiDifficultySelect button {
+            pointer-events: all;
+        }
+        #customLevelConfig {
+            width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            z-index: 3000;
+            pointer-events: all;
+        }
+        #customLevelConfig button {
+            pointer-events: all;
+        }
+        .config-section {
+            margin: 20px 0;
+            text-align: left;
+        }
+        .config-section h3 {
+            color: #FFD700;
+            margin-bottom: 10px;
+            border-bottom: 2px solid #555;
+            padding-bottom: 5px;
+        }
+        .config-item {
+            margin: 10px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .config-item label {
+            flex: 1;
+            text-align: left;
+        }
+        .config-item input {
+            width: 100px;
+            padding: 5px;
+            border: 2px solid #555;
+            border-radius: 5px;
+            background: #222;
+            color: white;
+            text-align: center;
+        }
+        .difficulty-button {
+            background: #FF5722;
+            color: white;
+            width: 200px;
+            margin: 10px;
+            padding: 18px;
+            font-size: 20px;
+            min-height: 60px;
+        }
+        .difficulty-button:hover {
+            background: #E64A19;
+        }
+        .level-button {
+            background: #2196F3;
+            color: white;
+            width: 200px;
+            margin: 10px;
+            padding: 18px;
+            font-size: 20px;
+            min-height: 60px;
+        }
+        .level-button:hover:not(:disabled) {
+            background: #1976D2;
+        }
+        .level-button:disabled {
+            background: #666;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+        #gameOver h1 {
+            margin: 0 0 20px 0;
+            font-size: 48px;
+        }
+        .cubes-display {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+        .cube {
+            width: 70px;
+            height: 70px;
+        }
+        .cube-red {
+            background: #f44336;
+        }
+        .cube-blue {
+            background: #2196F3;
+        }
+        .platform-buttons {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .platform-btn {
+            width: 60px;
+            height: 60px;
+            border: 3px solid #666;
+            border-radius: 10px;
+            background: #333;
+            color: white;
+            font-size: 28px;
+            cursor: pointer;
+            transition: all 0.3s;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+        .platform-btn:hover {
+            background: #444;
+            border-color: #888;
+        }
+        .platform-btn.active {
+            background: #4CAF50;
+            border-color: #4CAF50;
+        }
+        #joystick {
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+            width: 120px;
+            height: 120px;
+            display: none;
+            touch-action: none;
+            z-index: 1000;
+        }
+        #joystickBase {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: rgba(100, 100, 100, 0.5);
+            border: 3px solid rgba(150, 150, 150, 0.8);
+            position: relative;
+        }
+        #joystickStick {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(200, 200, 200, 0.9);
+            border: 3px solid rgba(255, 255, 255, 0.9);
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            touch-action: none;
+        }
+    
+/* ===== MOBILE RESPONSIVE FIX ===== */
+@media (max-width: 768px) {
+
+  body {
+    overflow-x: hidden;
+  }
+
+  #mainMenu, #levelSelect, #aiDifficultySelect, #customLevelConfig {
+    width: 100%;
+    padding: 10px;
+    box-sizing: border-box;
+  }
+
+  .menu, .container, .panel {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  button {
+    width: 90% !important;
+    font-size: 18px !important;
+    padding: 15px !important;
+    margin: 10px auto !important;
+    display: block;
+  }
+
+  h1, h2, h3 {
+    text-align: center;
+    font-size: 22px;
+  }
+
+  .difficulty-buttons,
+  .device-select {
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 10px !important;
+  }
+
+  canvas {
+    width: 100% !important;
+    height: auto !important;
+    max-width: 100vw;
+  }
+
+  #ui, #energyUI, #bossControls {
+    transform: scale(0.9);
+    transform-origin: top left;
+  }
+}
+/* ===== END MOBILE FIX ===== */
+
+</style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    
+    <div id="ui" style="display: none;">
+        <div>
+            <strong>JEFE</strong>
+            <div class="health-bar">
+                <div id="bossHealthFill" class="health-fill boss-health" style="width: 100%"></div>
+            </div>
+            <div id="bossHealthText">100/100</div>
+        </div>
+        <div style="margin-top: 20px;">
+            <strong>JUGADOR</strong>
+            <div class="health-bar">
+                <div id="playerHealthFill" class="health-fill player-health" style="width: 100%"></div>
+            </div>
+            <div id="playerHealthText">100/100</div>
+        </div>
+        <div style="margin-top: 20px;" id="aiEnergySection">
+            <strong>ENERGÍA IA</strong>
+            <div class="health-bar" style="width: 150px;">
+                <div id="aiEnergyFill" class="health-fill" style="width: 0%; background: linear-gradient(90deg, #FFD700, #FFA500);"></div>
+            </div>
+            <div id="aiEnergyText">0/6</div>
+        </div>
+        <div style="margin-top: 20px;">
+            <strong>NIVEL: <span id="currentLevel">1</span></strong>
+        </div>
+    </div>
+
+    <div id="energyUI" style="display: none;">
+        <strong>ENERGÍA</strong>
+        <div id="energyBar">
+            <div id="energyFill" style="width: 0%"></div>
+        </div>
+        <button id="springBtn" style="display: none;">ACTIVAR RESORTE</button>
+    </div>
+
+    <div id="bossControls">
+        <div class="boss-ability" id="fireballBtn" data-ability="fireball">
+            🔥
+            <div class="cooldown-overlay" id="fireballCooldown"></div>
+        </div>
+        <div class="boss-ability" id="chairBtn" data-ability="chair">
+            🪑
+            <div class="cooldown-overlay" id="chairCooldown"></div>
+        </div>
+        <div class="boss-ability" id="tableBtn" data-ability="table">
+            🪵
+            <div class="cooldown-overlay" id="tableCooldown"></div>
+        </div>
+        <div class="boss-ability" id="greenFireballBtn" data-ability="greenFireball">
+            💚
+            <div class="cooldown-overlay" id="greenFireballCooldown"></div>
+        </div>
+    </div>
+
+    <button id="throwBtn">¡LANZAR!</button>
+    <button id="exitBtn">SALIR AL MENÚ</button>
+
+    <div id="joystick">
+        <div id="joystickBase">
+            <div id="joystickStick"></div>
+        </div>
+    </div>
+
+    <div id="mainMenu">
+        <div class="menu-left">
+            <h1 style="margin-bottom: 30px;">BATALLA DE CUBOS</h1>
+            <button class="menu-button" id="playBtn">JUGAR</button>
+            <button class="menu-button boss-button" id="bossBtn">YO JEFE</button>
+            <button class="menu-button custom-button" id="customBtn">NIVEL PERSONALIZADO</button>
+            <button class="menu-button warning-button" id="newGameBtn">NUEVA PARTIDA<br>(Se perderá tu progreso)</button>
+        </div>
+        <div class="menu-right">
+            <div class="platform-buttons">
+                <button class="platform-btn active" id="pcBtn" title="Modo PC">🖥️</button>
+                <button class="platform-btn" id="mobileBtn" title="Modo Móvil">📱</button>
+            </div>
+            <div class="cubes-display">
+                <div class="cube cube-red"></div>
+                <div class="cube cube-blue"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="levelSelect">
+        <h2>SELECCIONA NIVEL</h2>
+        <div>
+            <button class="level-button" data-level="1">NIVEL 1</button>
+            <button class="level-button" id="level2Btn" data-level="2" disabled>🔒 NIVEL 2</button>
+            <button class="level-button" id="level3Btn" data-level="3" disabled>🔒 NIVEL 3</button>
+            <button class="level-button" id="level4Btn" data-level="4" disabled>🔒 NIVEL 4</button>
+            <button class="level-button" id="level5Btn" data-level="5" disabled>🔒 NIVEL 5</button>
+            <button class="level-button" id="level6Btn" data-level="6" disabled>🔒 NIVEL 6</button>
+            <button class="level-button" id="level7Btn" data-level="7" disabled>🔒 NIVEL 7</button>
+            <button class="level-button" id="level8Btn" data-level="8" disabled>🔒 NIVEL 8</button>
+            <button class="level-button" id="level9Btn" data-level="9" disabled>🔒 NIVEL 9</button>
+            <button class="level-button" id="level10Btn" data-level="10" disabled>🔒 NIVEL 10</button>
+        </div>
+        <button id="backFromLevelBtn" style="background: #666; color: white; margin-top: 20px;">VOLVER</button>
+    </div>
+
+    <div id="aiDifficultySelect">
+        <h2>SELECCIONA DIFICULTAD DE LA IA</h2>
+        <div>
+            <button class="difficulty-button" data-difficulty="easy">FÁCIL</button>
+            <button class="difficulty-button" data-difficulty="medium">MEDIA</button>
+            <button class="difficulty-button" data-difficulty="hard">DIFÍCIL</button>
+            <button class="difficulty-button" data-difficulty="expert">EXPERTO</button>
+        </div>
+        <button id="backFromAIBtn" style="background: #666; color: white; margin-top: 20px;">VOLVER</button>
+    </div>
+
+    <div id="customLevelConfig">
+        <h2>CONFIGURACIÓN PERSONALIZADA</h2>
+        
+        <div class="config-section">
+            <h3>JEFE</h3>
+            <div class="config-item">
+                <label>Vida del Jefe:</label>
+                <input type="number" id="customBossHealth" value="100" min="50" max="500">
+            </div>
+            <div class="config-item">
+                <label>Velocidad del Jefe:</label>
+                <input type="number" id="customBossSpeed" value="2" min="1" max="10" step="0.5">
+            </div>
+        </div>
+
+        <div class="config-section">
+            <h3>PROYECTILES</h3>
+            <div class="config-item">
+                <label>Daño Bola de Fuego:</label>
+                <input type="number" id="customFireballDamage" value="20" min="5" max="50">
+            </div>
+            <div class="config-item">
+                <label>Tamaño Bola de Fuego:</label>
+                <input type="number" id="customFireballSize" value="10" min="5" max="30">
+            </div>
+            <div class="config-item">
+                <label>Velocidad Bola de Fuego:</label>
+                <input type="number" id="customFireballSpeed" value="3" min="1" max="10" step="0.5">
+            </div>
+            <div class="config-item">
+                <label>Intervalo Inicial (ms):</label>
+                <input type="number" id="customFireballDelay" value="2000" min="500" max="5000" step="100">
+            </div>
+            <div class="config-item">
+                <label>Intervalo Mínimo (ms):</label>
+                <input type="number" id="customMinDelay" value="800" min="200" max="2000" step="100">
+            </div>
+        </div>
+
+        <div class="config-section">
+            <h3>VELOCIDADES</h3>
+            <div class="config-item">
+                <label>Velocidad Caída Muebles:</label>
+                <input type="number" id="customFurnitureSpeed" value="3" min="1" max="10" step="0.5">
+            </div>
+            <div class="config-item">
+                <label>Velocidad Lanzamiento:</label>
+                <input type="number" id="customThrowSpeed" value="8" min="5" max="20">
+            </div>
+        </div>
+
+        <div class="config-section">
+            <h3>PROBABILIDADES</h3>
+            <div class="config-item">
+                <label>Probabilidad Silla (%):</label>
+                <input type="number" id="customChairChance" value="40" min="0" max="100">
+            </div>
+            <div class="config-item">
+                <label>Probabilidad Mesa (%):</label>
+                <input type="number" id="customTableChance" value="5" min="0" max="100">
+            </div>
+            <div class="config-item">
+                <label>Probabilidad Bola Verde (%):</label>
+                <input type="number" id="customGreenFireballChance" value="2" min="0" max="100">
+            </div>
+        </div>
+
+        <div class="config-section">
+            <h3>MUEBLES</h3>
+            <div class="config-item">
+                <label>Daño Silla al Jefe:</label>
+                <input type="number" id="customChairDamage" value="5" min="1" max="20">
+            </div>
+            <div class="config-item">
+                <label>Daño Silla al Jugador:</label>
+                <input type="number" id="customChairPlayerDamage" value="50" min="10" max="100">
+            </div>
+            <div class="config-item">
+                <label>Daño Mesa al Jefe:</label>
+                <input type="number" id="customTableDamage" value="10" min="1" max="30">
+            </div>
+            <div class="config-item">
+                <label>Daño Mesa al Jugador:</label>
+                <input type="number" id="customTablePlayerDamage" value="70" min="20" max="100">
+            </div>
+        </div>
+
+        <button id="startCustomBtn" style="background: #9C27B0; color: white; margin: 20px 10px; padding: 15px 30px; font-size: 18px;">JUGAR</button>
+        <button id="backFromCustomBtn" style="background: #666; color: white; margin: 20px 10px; padding: 15px 30px; font-size: 18px;">VOLVER</button>
+    </div>
+
+    <div id="gameOver">
+        <h1 id="gameOverText"></h1>
+        <button id="backToMenuBtn" style="background: #4CAF50; color: white;">MENÚ PRINCIPAL</button>
+        <button id="retryBtn" style="background: #2196F3; color: white;">REINTENTAR NIVEL</button>
+    </div>
+
+    <script>
+        // Progreso del jugador
+        let playerProgress = {
+            unlockedLevels: 1
+        };
+
+        // Configuración de niveles
+        const levelConfigs = {
+            1: { 
+                bossHealth: 100, 
+                bossSpeed: 2, 
+                fireballDamage: 20, 
+                fireballDelay: 2000, 
+                minDelay: 800,
+                fireballSize: 10,
+                fireballSpeed: 3,
+                furnitureSpeed: 3,
+                throwSpeed: 8,
+                chairChance: 0.40,
+                tableChance: 0.05,
+                greenFireball: false
+            },
+            2: { 
+                bossHealth: 120, 
+                bossSpeed: 2.5, 
+                fireballDamage: 20, 
+                fireballDelay: 1800, 
+                minDelay: 700,
+                fireballSize: 12,
+                fireballSpeed: 3.2,
+                furnitureSpeed: 3,
+                throwSpeed: 8,
+                chairChance: 0.35,
+                tableChance: 0.04,
+                greenFireball: false
+            },
+            3: { 
+                bossHealth: 150, 
+                bossSpeed: 3, 
+                fireballDamage: 20, 
+                fireballDelay: 1600, 
+                minDelay: 600,
+                fireballSize: 14,
+                fireballSpeed: 3.5,
+                furnitureSpeed: 4,
+                throwSpeed: 10,
+                chairChance: 0.30,
+                tableChance: 0.03,
+                greenFireball: false
+            },
+            4: { 
+                bossHealth: 180, 
+                bossSpeed: 3.5, 
+                fireballDamage: 20, 
+                fireballDelay: 1400, 
+                minDelay: 500,
+                fireballSize: 16,
+                fireballSpeed: 3.8,
+                furnitureSpeed: 4.5,
+                throwSpeed: 11,
+                chairChance: 0.25,
+                tableChance: 0.02,
+                greenFireball: false
+            },
+            5: { 
+                bossHealth: 200, 
+                bossSpeed: 4, 
+                fireballDamage: 20, 
+                fireballDelay: 1200, 
+                minDelay: 400,
+                fireballSize: 18,
+                fireballSpeed: 4,
+                furnitureSpeed: 5,
+                throwSpeed: 12,
+                chairChance: 0.20,
+                tableChance: 0.02,
+                greenFireball: true,
+                greenFireballChance: 0.02
+            },
+            6: { 
+                bossHealth: 230, 
+                bossSpeed: 4.5, 
+                fireballDamage: 25, 
+                fireballDelay: 1000, 
+                minDelay: 350,
+                fireballSize: 20,
+                fireballSpeed: 4.5,
+                furnitureSpeed: 5.5,
+                throwSpeed: 13,
+                chairChance: 0.18,
+                tableChance: 0.02,
+                greenFireball: true,
+                greenFireballChance: 0.03
+            },
+            7: { 
+                bossHealth: 260, 
+                bossSpeed: 5, 
+                fireballDamage: 25, 
+                fireballDelay: 900, 
+                minDelay: 300,
+                fireballSize: 22,
+                fireballSpeed: 5,
+                furnitureSpeed: 6,
+                throwSpeed: 14,
+                chairChance: 0.15,
+                tableChance: 0.02,
+                greenFireball: true,
+                greenFireballChance: 0.04
+            },
+            8: { 
+                bossHealth: 300, 
+                bossSpeed: 5.5, 
+                fireballDamage: 30, 
+                fireballDelay: 800, 
+                minDelay: 280,
+                fireballSize: 24,
+                fireballSpeed: 5.5,
+                furnitureSpeed: 6.5,
+                throwSpeed: 15,
+                chairChance: 0.12,
+                tableChance: 0.02,
+                greenFireball: true,
+                greenFireballChance: 0.05
+            },
+            9: { 
+                bossHealth: 350, 
+                bossSpeed: 6, 
+                fireballDamage: 30, 
+                fireballDelay: 700, 
+                minDelay: 250,
+                fireballSize: 26,
+                fireballSpeed: 6,
+                furnitureSpeed: 7,
+                throwSpeed: 16,
+                chairChance: 0.10,
+                tableChance: 0.02,
+                greenFireball: true,
+                greenFireballChance: 0.06
+            },
+            10: { 
+                bossHealth: 400, 
+                bossSpeed: 7, 
+                fireballDamage: 35, 
+                fireballDelay: 600, 
+                minDelay: 200,
+                fireballSize: 28,
+                fireballSpeed: 7,
+                furnitureSpeed: 8,
+                throwSpeed: 18,
+                chairChance: 0.08,
+                tableChance: 0.02,
+                greenFireball: true,
+                greenFireballChance: 0.08
+            }
+        };
+
+        let currentLevel = 1;
+        let gameState = null;
+        let bossMode = false;
+        let aiDifficulty = null;
+        let abilityCooldowns = {
+            fireball: 0,
+            chair: 0,
+            table: 0,
+            greenFireball: 0
+        };
+        let aiTimer = 0;
+        let aiMovementTimer = 0;
+        let aiTargetX = 400;
+        let aiThrowTimer = 0;
+        let aiCurrentVelocity = 0;
+        
+        // Control de plataforma
+        let platformMode = 'pc'; // 'pc' o 'mobile'
+        let joystickActive = false;
+        let joystickDirection = { x: 0, y: 0 };
+
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const aiDifficultySettings = {
+            easy: { reactionTime: 800, dodgeChance: 0.3, pickupChanceChair: 0.5, pickupChanceTable: 0.3, aimAccuracy: 0.4 },
+            medium: { reactionTime: 500, dodgeChance: 0.5, pickupChanceChair: 0.65, pickupChanceTable: 0.4, aimAccuracy: 0.6 },
+            hard: { reactionTime: 300, dodgeChance: 0.7, pickupChanceChair: 0.8, pickupChanceTable: 0.5, aimAccuracy: 0.8 },
+            expert: { reactionTime: 150, dodgeChance: 0.85, pickupChanceChair: 0.9, pickupChanceTable: 0.65, aimAccuracy: 0.95 }
+        };
+
+        function setPlatform(mode) {
+            platformMode = mode;
+            
+            // Actualizar botones
+            document.getElementById('pcBtn').classList.remove('active');
+            document.getElementById('mobileBtn').classList.remove('active');
+            
+            if (mode === 'pc') {
+                document.getElementById('pcBtn').classList.add('active');
+            } else {
+                document.getElementById('mobileBtn').classList.add('active');
+            }
+        }
+
+        function initJoystick() {
+            const stick = document.getElementById('joystickStick');
+            const base = document.getElementById('joystickBase');
+            
+            let isDragging = false;
+            let startX = 0;
+            let startY = 0;
+            
+            function handleStart(e) {
+                isDragging = true;
+                joystickActive = true;
+                const touch = e.touches ? e.touches[0] : e;
+                const rect = base.getBoundingClientRect();
+                startX = rect.left + rect.width / 2;
+                startY = rect.top + rect.height / 2;
+                e.preventDefault();
+            }
+            
+            function handleMove(e) {
+                if (!isDragging) return;
+                
+                const touch = e.touches ? e.touches[0] : e;
+                const dx = touch.clientX - startX;
+                const dy = touch.clientY - startY;
+                
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                const maxDistance = 35;
+                
+                if (distance > maxDistance) {
+                    const angle = Math.atan2(dy, dx);
+                    stick.style.left = `calc(50% + ${Math.cos(angle) * maxDistance}px)`;
+                    stick.style.top = `calc(50% + ${Math.sin(angle) * maxDistance}px)`;
+                    joystickDirection.x = Math.cos(angle);
+                    joystickDirection.y = Math.sin(angle);
+                } else {
+                    stick.style.left = `calc(50% + ${dx}px)`;
+                    stick.style.top = `calc(50% + ${dy}px)`;
+                    joystickDirection.x = dx / maxDistance;
+                    joystickDirection.y = dy / maxDistance;
+                }
+                
+                e.preventDefault();
+            }
+            
+            function handleEnd(e) {
+                isDragging = false;
+                joystickActive = false;
+                stick.style.left = '50%';
+                stick.style.top = '50%';
+                joystickDirection.x = 0;
+                joystickDirection.y = 0;
+                e.preventDefault();
+            }
+            
+            // Touch events
+            stick.addEventListener('touchstart', handleStart);
+            document.addEventListener('touchmove', handleMove);
+            document.addEventListener('touchend', handleEnd);
+            
+            // Mouse events para testing
+            stick.addEventListener('mousedown', handleStart);
+            document.addEventListener('mousemove', handleMove);
+            document.addEventListener('mouseup', handleEnd);
+        }
+
+        initJoystick();
+
+        function initGameState(level) {
+            const config = levelConfigs[level];
+            return {
+                player: { x: 350, y: 530, width: 50, height: 50, health: 100, maxHealth: 100 },
+                boss: { 
+                    x: 100, 
+                    y: 50, 
+                    width: 70, 
+                    height: 70, 
+                    health: config.bossHealth, 
+                    maxHealth: config.bossHealth, 
+                    speed: config.bossSpeed, 
+                    direction: 1 
+                },
+                fireballs: [],
+                furniture: [],
+                damageIndicators: [],
+                heldItem: null,
+                energy: 0,
+                maxEnergy: 6,
+                springActive: false,
+                springTimer: 0,
+                springX: 0,
+                springY: 0,
+                fireballTimer: 0,
+                fireballDelay: config.fireballDelay,
+                minDelay: config.minDelay,
+                currentDelay: config.fireballDelay,
+                gameOver: false,
+                keys: {},
+                level: level,
+                config: config
+            };
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (gameState) gameState.keys[e.key.toLowerCase()] = true;
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (gameState) gameState.keys[e.key.toLowerCase()] = false;
+        });
+
+        function handleClick(e) {
+            if (!gameState || gameState.gameOver || bossMode) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            for (let i = gameState.furniture.length - 1; i >= 0; i--) {
+                const f = gameState.furniture[i];
+                if (!f.thrown && x >= f.x && x <= f.x + f.width && y >= f.y && y <= f.y + f.height) {
+                    gameState.heldItem = f;
+                    gameState.furniture.splice(i, 1);
+                    showThrowButton();
+                    break;
+                }
+            }
+        }
+
+        function handleTouch(e) {
+            if (platformMode !== 'mobile') return;
+            
+            const touch = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            const x = touch.clientX - rect.left;
+            const y = touch.clientY - rect.top;
+            
+            if (!gameState || gameState.gameOver || bossMode) return;
+
+            for (let i = gameState.furniture.length - 1; i >= 0; i--) {
+                const f = gameState.furniture[i];
+                if (!f.thrown && x >= f.x && x <= f.x + f.width && y >= f.y && y <= f.y + f.height) {
+                    gameState.heldItem = f;
+                    gameState.furniture.splice(i, 1);
+                    showThrowButton();
+                    e.preventDefault();
+                    break;
+                }
+            }
+        }
+
+        canvas.addEventListener('click', handleClick);
+        canvas.addEventListener('touchstart', handleTouch, { passive: false });
+        
+        // Función universal para agregar event listeners
+        function addButtonListener(id, callback) {
+            const btn = document.getElementById(id);
+            if (btn) {
+                btn.onclick = callback;
+                btn.ontouchstart = function(e) {
+                    e.preventDefault();
+                    callback();
+                };
+            }
+        }
+
+        // MENÚ PRINCIPAL - Configurar después de 100ms para asegurar que DOM esté listo
+        setTimeout(function() {
+            addButtonListener('playBtn', function() { showLevelSelect(false); });
+            addButtonListener('bossBtn', function() { showAIDifficulty(); });
+            addButtonListener('customBtn', function() { showCustomLevel(); });
+            addButtonListener('newGameBtn', function() { confirmNewGame(); });
+            addButtonListener('pcBtn', function() { setPlatform('pc'); });
+            addButtonListener('mobileBtn', function() { setPlatform('mobile'); });
+
+        // BOTONES DE NIVEL
+        document.querySelectorAll('.level-button').forEach(btn => {
+            const level = parseInt(btn.dataset.level);
+            btn.onclick = function() {
+                if (!btn.disabled) startLevel(level);
+            };
+            btn.ontouchstart = function(e) {
+                e.preventDefault();
+                if (!btn.disabled) startLevel(level);
+            };
+        });
+
+        // BOTONES DE DIFICULTAD IA
+        document.querySelectorAll('.difficulty-button').forEach(btn => {
+            const difficulty = btn.dataset.difficulty;
+            btn.onclick = function() { startBossMode(difficulty); };
+            btn.ontouchstart = function(e) {
+                e.preventDefault();
+                startBossMode(difficulty);
+            };
+        });
+
+        // BOTONES GENERALES
+        addButtonListener('throwBtn', function() { throwItem(); });
+        addButtonListener('springBtn', function() { activateSpring(); });
+        addButtonListener('exitBtn', function() { exitToMenu(); });
+        addButtonListener('backFromLevelBtn', function() { backToMenu(); });
+        addButtonListener('backFromAIBtn', function() { backToMenu(); });
+        addButtonListener('backFromCustomBtn', function() { backToMenu(); });
+        addButtonListener('startCustomBtn', function() { startCustomLevel(); });
+        addButtonListener('backToMenuBtn', function() { backToMenu(); });
+        addButtonListener('retryBtn', function() { retryLevel(); });
+
+        // Botones de habilidades
+        const abilities = ['fireball', 'chair', 'table', 'greenFireball'];
+        abilities.forEach(ability => {
+            const btn = document.getElementById(ability + 'Btn');
+            if (btn) {
+                btn.onclick = function() { useBossAbility(ability); };
+                btn.ontouchstart = function(e) {
+                    e.preventDefault();
+                    useBossAbility(ability);
+                };
+            }
+        });
+        }, 100);
+
+        function exitToMenu() {
+            if (confirm('¿Estás seguro de que quieres salir? Se perderá el progreso actual de esta partida.')) {
+                backToMenu();
+            }
+        }
+
+        function handleTouch(e) {
+            if (platformMode !== 'mobile') return;
+            e.preventDefault();
+            
+            const touch = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            const x = touch.clientX - rect.left;
+            const y = touch.clientY - rect.top;
+            
+            if (!gameState || gameState.gameOver || bossMode) return;
+
+            for (let i = gameState.furniture.length - 1; i >= 0; i--) {
+                const f = gameState.furniture[i];
+                if (!f.thrown && x >= f.x && x <= f.x + f.width && y >= f.y && y <= f.y + f.height) {
+                    gameState.heldItem = f;
+                    gameState.furniture.splice(i, 1);
+                    showThrowButton();
+                    break;
+                }
+            }
+        }
+
+        function confirmExit() {
+            const confirmed = confirm('¿Estás seguro de que quieres salir? Se perderá el progreso actual de esta partida.');
+            if (confirmed) {
+                backToMenu();
+            }
+        }
+
+        function confirmNewGame() {
+            if (confirm('¿Estás seguro? Se perderá todo tu progreso actual.')) {
+                showLevelSelect(true);
+            }
+        }
+
+        function showLevelSelect(isNewGame) {
+            if (isNewGame) {
+                playerProgress.unlockedLevels = 1;
+            }
+            updateLevelButtons();
+            document.getElementById('mainMenu').style.display = 'none';
+            document.getElementById('levelSelect').style.display = 'block';
+        }
+
+        function confirmNewGame() {
+            if (confirm('¿Estás seguro? Se perderá todo tu progreso actual.')) {
+                showLevelSelect(true);
+            }
+        }
+
+        function backToMenu() {
+            // Limpiar estado del juego
+            gameState = null;
+            bossMode = false;
+            
+            // Ocultar todas las pantallas de juego
+            document.getElementById('levelSelect').style.display = 'none';
+            document.getElementById('gameOver').style.display = 'none';
+            document.getElementById('aiDifficultySelect').style.display = 'none';
+            document.getElementById('customLevelConfig').style.display = 'none';
+            document.getElementById('ui').style.display = 'none';
+            document.getElementById('energyUI').style.display = 'none';
+            document.getElementById('bossControls').style.display = 'none';
+            document.getElementById('aiEnergySection').style.display = 'none';
+            document.getElementById('exitBtn').style.display = 'none';
+            document.getElementById('joystick').style.display = 'none';
+            document.getElementById('throwBtn').style.display = 'none';
+            
+            // Mostrar menú principal
+            document.getElementById('mainMenu').style.display = 'flex';
+        }
+
+        function showAIDifficulty() {
+            document.getElementById('mainMenu').style.display = 'none';
+            document.getElementById('aiDifficultySelect').style.display = 'block';
+        }
+
+        function showCustomLevel() {
+            document.getElementById('mainMenu').style.display = 'none';
+            document.getElementById('customLevelConfig').style.display = 'block';
+        }
+
+        function startCustomLevel() {
+            const customConfig = {
+                bossHealth: parseInt(document.getElementById('customBossHealth').value),
+                bossSpeed: parseFloat(document.getElementById('customBossSpeed').value),
+                fireballDamage: parseInt(document.getElementById('customFireballDamage').value),
+                fireballDelay: parseInt(document.getElementById('customFireballDelay').value),
+                minDelay: parseInt(document.getElementById('customMinDelay').value),
+                fireballSize: parseInt(document.getElementById('customFireballSize').value),
+                fireballSpeed: parseFloat(document.getElementById('customFireballSpeed').value),
+                furnitureSpeed: parseFloat(document.getElementById('customFurnitureSpeed').value),
+                throwSpeed: parseInt(document.getElementById('customThrowSpeed').value),
+                chairChance: parseInt(document.getElementById('customChairChance').value) / 100,
+                tableChance: parseInt(document.getElementById('customTableChance').value) / 100,
+                greenFireball: parseInt(document.getElementById('customGreenFireballChance').value) > 0,
+                greenFireballChance: parseInt(document.getElementById('customGreenFireballChance').value) / 100,
+                chairDamage: parseInt(document.getElementById('customChairDamage').value),
+                chairPlayerDamage: parseInt(document.getElementById('customChairPlayerDamage').value),
+                tableDamage: parseInt(document.getElementById('customTableDamage').value),
+                tablePlayerDamage: parseInt(document.getElementById('customTablePlayerDamage').value)
+            };
+
+            currentLevel = 'custom';
+            bossMode = false;
+            gameState = initGameState(1);
+            
+            // Aplicar configuración personalizada
+            gameState.boss.health = customConfig.bossHealth;
+            gameState.boss.maxHealth = customConfig.bossHealth;
+            gameState.boss.speed = customConfig.bossSpeed;
+            gameState.config = customConfig;
+            gameState.fireballDelay = customConfig.fireballDelay;
+            gameState.minDelay = customConfig.minDelay;
+            gameState.currentDelay = customConfig.fireballDelay;
+            
+            document.getElementById('customLevelConfig').style.display = 'none';
+            document.getElementById('ui').style.display = 'block';
+            document.getElementById('energyUI').style.display = 'block';
+            document.getElementById('exitBtn').style.display = 'block';
+            document.getElementById('currentLevel').textContent = 'PERSONALIZADO';
+            
+            // Mostrar joystick solo en modo móvil
+            if (platformMode === 'mobile') {
+                document.getElementById('joystick').style.display = 'block';
+            }
+            
+            updateHealthUI();
+            updateEnergyUI();
+        }
+
+        function confirmExit() {
+            const confirmed = confirm('¿Estás seguro de que quieres salir? Se perderá el progreso actual de esta partida.');
+            if (confirmed) {
+                backToMenu();
+            }
+        }
+
+        function startBossMode(difficulty) {
+            bossMode = true;
+            aiDifficulty = difficulty;
+            gameState = initGameState(1);
+            gameState.bossMode = true;
+            gameState.aiSettings = aiDifficultySettings[difficulty];
+            gameState.aiEnergy = 0;
+            
+            // Resetear cooldowns
+            abilityCooldowns = {
+                fireball: 0,
+                chair: 0,
+                table: 0,
+                greenFireball: 0
+            };
+            
+            document.getElementById('aiDifficultySelect').style.display = 'none';
+            document.getElementById('ui').style.display = 'block';
+            document.getElementById('bossControls').style.display = 'block';
+            document.getElementById('aiEnergySection').style.display = 'block';
+            document.getElementById('exitBtn').style.display = 'block';
+            document.getElementById('currentLevel').textContent = 'YO JEFE - ' + difficulty.toUpperCase();
+            
+            // No mostrar joystick en modo jefe
+            document.getElementById('joystick').style.display = 'none';
+            
+            updateHealthUI();
+            updateAIEnergyUI();
+        }
+
+        function updateLevelButtons() {
+            for (let i = 2; i <= 10; i++) {
+                const btn = document.getElementById(`level${i}Btn`);
+                if (i <= playerProgress.unlockedLevels) {
+                    btn.disabled = false;
+                    btn.textContent = `NIVEL ${i}`;
+                } else {
+                    btn.disabled = true;
+                    btn.textContent = `🔒 NIVEL ${i}`;
+                }
+            }
+        }
+
+        function updateAIEnergyUI() {
+            if (!gameState || !bossMode) return;
+            const percent = (gameState.aiEnergy / gameState.maxEnergy) * 100;
+            document.getElementById('aiEnergyFill').style.width = percent + '%';
+            document.getElementById('aiEnergyText').textContent = gameState.aiEnergy + '/' + gameState.maxEnergy;
+        }
+
+        function startLevel(level) {
+            currentLevel = level;
+            bossMode = false;
+            gameState = initGameState(level);
+            document.getElementById('levelSelect').style.display = 'none';
+            document.getElementById('ui').style.display = 'block';
+            document.getElementById('energyUI').style.display = 'block';
+            document.getElementById('exitBtn').style.display = 'block';
+            document.getElementById('currentLevel').textContent = level;
+            
+            // Mostrar joystick solo en modo móvil
+            if (platformMode === 'mobile') {
+                document.getElementById('joystick').style.display = 'block';
+            }
+            
+            updateHealthUI();
+            updateEnergyUI();
+        }
+
+        function retryLevel() {
+            document.getElementById('gameOver').style.display = 'none';
+            if (bossMode) {
+                startBossMode(aiDifficulty);
+            } else {
+                startLevel(currentLevel);
+            }
+        }
+
+        function handleClick(e) {
+            if (!gameState || gameState.gameOver || bossMode) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            for (let i = gameState.furniture.length - 1; i >= 0; i--) {
+                const f = gameState.furniture[i];
+                if (!f.thrown && x >= f.x && x <= f.x + f.width && y >= f.y && y <= f.y + f.height) {
+                    gameState.heldItem = f;
+                    gameState.furniture.splice(i, 1);
+                    showThrowButton();
+                    break;
+                }
+            }
+        }
+
+        function showThrowButton() {
+            const btn = document.getElementById('throwBtn');
+            btn.style.display = 'block';
+            const canvasRect = canvas.getBoundingClientRect();
+            btn.style.left = (canvasRect.left + gameState.player.x + gameState.player.width + 10) + 'px';
+            btn.style.top = (canvasRect.top + gameState.player.y + gameState.player.height / 2 - 20) + 'px';
+        }
+
+        function throwItem() {
+            if (gameState.heldItem) {
+                gameState.heldItem.x = gameState.player.x + (gameState.player.width / 2) - (gameState.heldItem.width / 2);
+                gameState.heldItem.y = gameState.player.y - gameState.heldItem.height;
+                gameState.heldItem.thrown = true;
+                gameState.heldItem.vy = -(gameState.config.throwSpeed || 8);
+                gameState.heldItem.vx = 0;
+                gameState.furniture.push(gameState.heldItem);
+                gameState.heldItem = null;
+                document.getElementById('throwBtn').style.display = 'none';
+            }
+        }
+
+        function activateSpring() {
+            if (gameState.energy >= gameState.maxEnergy) {
+                gameState.springActive = true;
+                gameState.springTimer = 10000;
+                gameState.springX = gameState.player.x + 15;
+                gameState.springY = gameState.player.y - 40;
+                gameState.energy = 0;
+                updateEnergyUI();
+                document.getElementById('springBtn').style.display = 'none';
+            }
+        }
+
+        function useBossAbility(ability) {
+            if (abilityCooldowns[ability] > 0 || !gameState || gameState.gameOver) return;
+
+            // Verificar si hay algún cooldown activo (restricción global)
+            for (let key in abilityCooldowns) {
+                if (abilityCooldowns[key] > 0) {
+                    return; // No permitir usar habilidad si otra está en cooldown
+                }
+            }
+
+            let cooldown = 0;
+            
+            switch(ability) {
+                case 'fireball':
+                    gameState.fireballs.push({
+                        x: gameState.boss.x + gameState.boss.width/2,
+                        y: gameState.boss.y + gameState.boss.height,
+                        size: 14,
+                        speed: 3,
+                        damage: 20,
+                        homing: false,
+                        vx: 0,
+                        vy: 0,
+                        isGreen: false,
+                        isFragment: false
+                    });
+                    cooldown = 2000;
+                    break;
+                    
+                case 'chair':
+                    gameState.furniture.push({
+                        type: 'chair',
+                        x: gameState.boss.x + gameState.boss.width/2 - 20,
+                        y: gameState.boss.y + gameState.boss.height,
+                        width: 40,
+                        height: 50,
+                        speed: 3,
+                        damage: 5,
+                        playerDamage: 50,
+                        thrown: false,
+                        vy: 0
+                    });
+                    cooldown = 3500;
+                    break;
+                    
+                case 'table':
+                    gameState.furniture.push({
+                        type: 'table',
+                        x: gameState.boss.x + gameState.boss.width/2 - 30,
+                        y: gameState.boss.y + gameState.boss.height,
+                        width: 60,
+                        height: 40,
+                        speed: 3,
+                        damage: 10,
+                        playerDamage: 70,
+                        thrown: false,
+                        vy: 0
+                    });
+                    cooldown = 8000;
+                    break;
+                    
+                case 'greenFireball':
+                    gameState.fireballs.push({
+                        x: gameState.boss.x + gameState.boss.width/2,
+                        y: gameState.boss.y + gameState.boss.height,
+                        size: 18,
+                        speed: 3.5,
+                        damage: 30,
+                        homing: false,
+                        vx: 0,
+                        vy: 0,
+                        isGreen: true,
+                        isFragment: false
+                    });
+                    cooldown = 10000;
+                    break;
+            }
+            
+            // Activar cooldown para la habilidad usada
+            abilityCooldowns[ability] = cooldown;
+            
+            // Activar un pequeño cooldown global para todas las demás habilidades
+            for (let key in abilityCooldowns) {
+                if (key !== ability && abilityCooldowns[key] === 0) {
+                    abilityCooldowns[key] = 800; // 0.8 segundos de cooldown compartido
+                }
+            }
+            
+            updateAbilityButtons();
+        }
+
+        function updateAbilityButtons() {
+            for (let ability in abilityCooldowns) {
+                const btn = document.getElementById(ability + 'Btn');
+                const cooldownText = document.getElementById(ability + 'Cooldown');
+                
+                if (abilityCooldowns[ability] > 0) {
+                    btn.classList.add('cooldown');
+                    cooldownText.textContent = (abilityCooldowns[ability] / 1000).toFixed(1) + 's';
+                } else {
+                    btn.classList.remove('cooldown');
+                    cooldownText.textContent = '';
+                }
+            }
+        }
+
+        function update(deltaTime) {
+            if (!gameState || gameState.gameOver) return;
+
+            if (bossMode) {
+                // Actualizar cooldowns
+                for (let ability in abilityCooldowns) {
+                    if (abilityCooldowns[ability] > 0) {
+                        abilityCooldowns[ability] = Math.max(0, abilityCooldowns[ability] - deltaTime);
+                    }
+                }
+                updateAbilityButtons();
+                
+                // IA controla al jugador
+                aiTimer += deltaTime;
+                aiThrowTimer += deltaTime;
+                
+                if (aiTimer >= gameState.aiSettings.reactionTime) {
+                    aiTimer = 0;
+                    controlAI();
+                }
+                
+                // Movimiento fluido continuo de la IA
+                moveAI();
+                
+                // Lanzar muebles cuando sea estratégico
+                if (aiThrowTimer >= 500 && gameState.heldItem) {
+                    aiThrowTimer = 0;
+                    considerThrowing();
+                }
+            } else {
+                // Mover jugador (modo normal)
+                if (platformMode === 'pc') {
+                    // Control con teclado
+                    if (gameState.keys['a'] && gameState.player.x > 0) {
+                        gameState.player.x -= 5;
+                    }
+                    if (gameState.keys['d'] && gameState.player.x < canvas.width - gameState.player.width) {
+                        gameState.player.x += 5;
+                    }
+                } else {
+                    // Control con joystick
+                    if (joystickActive) {
+                        const speed = 5;
+                        gameState.player.x += joystickDirection.x * speed;
+                        
+                        // Mantener dentro de los límites
+                        if (gameState.player.x < 0) {
+                            gameState.player.x = 0;
+                        } else if (gameState.player.x > canvas.width - gameState.player.width) {
+                            gameState.player.x = canvas.width - gameState.player.width;
+                        }
+                    }
+                }
+            }
+
+            // Actualizar botón lanzar
+            if (gameState.heldItem) {
+                const btn = document.getElementById('throwBtn');
+                const canvasRect = canvas.getBoundingClientRect();
+                btn.style.left = (canvasRect.left + gameState.player.x + gameState.player.width + 10) + 'px';
+                btn.style.top = (canvasRect.top + gameState.player.y + gameState.player.height / 2 - 20) + 'px';
+            }
+
+            // Actualizar posición del resorte
+            if (gameState.springActive) {
+                gameState.springX = gameState.player.x + 15;
+                gameState.springTimer -= deltaTime;
+                if (gameState.springTimer <= 0) {
+                    gameState.springActive = false;
+                }
+            }
+
+            // Mover jefe
+            if (bossMode) {
+                // El jugador controla al jefe (movimiento automático)
+                gameState.boss.x += gameState.boss.speed * gameState.boss.direction;
+                if (gameState.boss.x <= 0 || gameState.boss.x >= canvas.width - gameState.boss.width) {
+                    gameState.boss.direction *= -1;
+                }
+            } else {
+                // Modo normal
+                gameState.boss.x += gameState.boss.speed * gameState.boss.direction;
+                if (gameState.boss.x <= 0 || gameState.boss.x >= canvas.width - gameState.boss.width) {
+                    gameState.boss.direction *= -1;
+                }
+            }
+
+            // Generar proyectiles
+            if (!bossMode) {
+                gameState.fireballTimer += deltaTime;
+                if (gameState.fireballTimer >= gameState.currentDelay) {
+                    gameState.fireballTimer = 0;
+                    spawnProjectile();
+                    if (gameState.currentDelay > gameState.config.minDelay) {
+                        gameState.currentDelay -= 15;
+                    }
+                }
+            }
+
+            // Actualizar bolas de fuego
+            for (let i = gameState.fireballs.length - 1; i >= 0; i--) {
+                const fb = gameState.fireballs[i];
+                
+                if (fb.homing) {
+                    const dx = (gameState.boss.x + gameState.boss.width/2) - fb.x;
+                    const dy = (gameState.boss.y + gameState.boss.height/2) - fb.y;
+                    const dist = Math.sqrt(dx*dx + dy*dy);
+                    fb.vx = (dx/dist) * 6;
+                    fb.vy = (dy/dist) * 6;
+                    fb.x += fb.vx;
+                    fb.y += fb.vy;
+
+                    if (checkCollision(fb, gameState.boss)) {
+                        damageEntity(gameState.boss, 15, 'boss');
+                        gameState.fireballs.splice(i, 1);
+                        continue;
+                    }
+                } else {
+                    fb.y += fb.speed;
+                    fb.size = Math.min(fb.size + 0.1, 30);
+                    fb.speed = Math.min(fb.speed + 0.02, gameState.config.fireballSpeed || 8);
+
+                    // Colisión con resorte
+                    if (gameState.springActive && 
+                        fb.x + fb.size > gameState.springX && 
+                        fb.x < gameState.springX + 20 &&
+                        fb.y + fb.size > gameState.springY && 
+                        fb.y < gameState.springY + 15) {
+                        fb.homing = true;
+                        fb.vx = 0;
+                        fb.vy = -5;
+                        continue;
+                    }
+
+                    // Colisión con jugador
+                    if (checkCollision(fb, gameState.player)) {
+                        damageEntity(gameState.player, fb.damage, 'player');
+                        gameState.fireballs.splice(i, 1);
+                        continue;
+                    }
+
+                    // Bola verde colisiona con el suelo
+                    if (fb.isGreen && fb.y >= canvas.height - fb.size) {
+                        spawnGreenFragments(fb.x, fb.y);
+                        gameState.fireballs.splice(i, 1);
+                        continue;
+                    }
+                }
+
+                if (fb.y > canvas.height + 50 || fb.y < -50) {
+                    gameState.fireballs.splice(i, 1);
+                }
+            }
+
+            // Actualizar muebles
+            for (let i = gameState.furniture.length - 1; i >= 0; i--) {
+                const f = gameState.furniture[i];
+                
+                if (f.thrown) {
+                    f.y += f.vy;
+                    f.x += f.vx || 0;
+                    
+                    if (checkCollision(f, gameState.boss)) {
+                        damageEntity(gameState.boss, f.damage, 'boss');
+                        addEnergy();
+                        gameState.furniture.splice(i, 1);
+                        continue;
+                    }
+                    
+                    if (f.y < -f.height) {
+                        gameState.furniture.splice(i, 1);
+                    }
+                } else {
+                    f.y += f.speed;
+                    
+                    if (checkCollision(f, gameState.player)) {
+                        damageEntity(gameState.player, f.playerDamage, 'player');
+                        gameState.furniture.splice(i, 1);
+                        continue;
+                    }
+                    
+                    if (f.y > canvas.height) {
+                        gameState.furniture.splice(i, 1);
+                    }
+                }
+            }
+
+            // Actualizar indicadores de daño
+            for (let i = gameState.damageIndicators.length - 1; i >= 0; i--) {
+                const di = gameState.damageIndicators[i];
+                di.y -= 1;
+                di.alpha -= 0.02;
+                if (di.alpha <= 0) {
+                    gameState.damageIndicators.splice(i, 1);
+                }
+            }
+
+            checkGameOver();
+        }
+
+        function moveAI() {
+            if (!gameState || gameState.gameOver) return;
+            
+            const playerCenter = gameState.player.x + gameState.player.width / 2;
+            const distToTarget = aiTargetX - playerCenter;
+            
+            // Aceleración suave para movimiento fluido
+            const maxSpeed = 6;
+            const acceleration = 0.5;
+            
+            if (Math.abs(distToTarget) > 5) {
+                if (distToTarget > 0) {
+                    // Acelerar hacia la derecha
+                    aiCurrentVelocity = Math.min(maxSpeed, aiCurrentVelocity + acceleration);
+                } else {
+                    // Acelerar hacia la izquierda
+                    aiCurrentVelocity = Math.max(-maxSpeed, aiCurrentVelocity - acceleration);
+                }
+            } else {
+                // Desacelerar cuando está cerca del objetivo
+                aiCurrentVelocity *= 0.8;
+            }
+            
+            // Aplicar velocidad
+            gameState.player.x += aiCurrentVelocity;
+            
+            // Mantener dentro de los límites
+            if (gameState.player.x < 0) {
+                gameState.player.x = 0;
+                aiCurrentVelocity = 0;
+            } else if (gameState.player.x > canvas.width - gameState.player.width) {
+                gameState.player.x = canvas.width - gameState.player.width;
+                aiCurrentVelocity = 0;
+            }
+        }
+
+        function considerThrowing() {
+            if (!gameState || gameState.gameOver || !gameState.heldItem) return;
+            
+            const aiSettings = gameState.aiSettings;
+            const bossCenter = gameState.boss.x + gameState.boss.width / 2;
+            const playerCenter = gameState.player.x + gameState.player.width / 2;
+            const horizontalDist = Math.abs(bossCenter - playerCenter);
+            
+            // Calcular si está en buena posición para tirar
+            let shouldThrow = false;
+            
+            // Si está bien alineado (con margen de error según dificultad)
+            const alignmentThreshold = 150 - (aiSettings.aimAccuracy * 100);
+            if (horizontalDist < alignmentThreshold) {
+                shouldThrow = Math.random() < aiSettings.aimAccuracy;
+            }
+            
+            // Forzar lanzamiento si el mueble está muy cerca del suelo
+            if (gameState.heldItem && gameState.player.y - gameState.heldItem.height < 400) {
+                shouldThrow = true;
+            }
+            
+            if (shouldThrow) {
+                // Calcular posición de lanzamiento con predicción
+                const predictedBossX = gameState.boss.x + (gameState.boss.speed * gameState.boss.direction * 30);
+                const targetX = predictedBossX + gameState.boss.width / 2;
+                const currentX = gameState.player.x + gameState.player.width / 2;
+                
+                gameState.heldItem.x = gameState.player.x + (gameState.player.width / 2) - (gameState.heldItem.width / 2);
+                gameState.heldItem.y = gameState.player.y - gameState.heldItem.height;
+                gameState.heldItem.thrown = true;
+                gameState.heldItem.vy = -(gameState.config.throwSpeed || 8);
+                
+                // Añadir algo de velocidad horizontal para mejor puntería
+                const xDiff = targetX - currentX;
+                gameState.heldItem.vx = Math.max(-2, Math.min(2, xDiff / 50));
+                
+                gameState.furniture.push(gameState.heldItem);
+                gameState.heldItem = null;
+            }
+        }
+
+        function controlAI() {
+            if (!gameState || gameState.gameOver) return;
+            
+            const aiSettings = gameState.aiSettings;
+            
+            // Si tiene el resorte activo, comportamiento especial
+            if (gameState.springActive) {
+                // Buscar proyectiles para interceptar
+                let closestProjectile = null;
+                let minDist = Infinity;
+                
+                for (let fb of gameState.fireballs) {
+                    if (!fb.homing) {
+                        const playerCenter = gameState.player.x + gameState.player.width / 2;
+                        const fbCenter = fb.x;
+                        const dist = Math.abs(fbCenter - playerCenter);
+                        
+                        // Buscar proyectiles que estén cayendo
+                        if (fb.y > gameState.player.y - 300 && fb.y < gameState.player.y + 100 && dist < minDist) {
+                            minDist = dist;
+                            closestProjectile = fb;
+                        }
+                    }
+                }
+                
+                // Moverse agresivamente hacia el proyectil para rebotarlo
+                if (closestProjectile) {
+                    const projectileX = closestProjectile.x;
+                    aiTargetX = projectileX;
+                    return; // Salir temprano, solo enfocarse en rebotar
+                }
+            }
+            
+            // Encontrar amenazas cercanas y decidir evasión
+            let closestThreat = null;
+            let minDist = Infinity;
+            let threatIsDangerous = false;
+            
+            for (let fb of gameState.fireballs) {
+                if (!fb.homing) {
+                    const playerCenter = gameState.player.x + gameState.player.width / 2;
+                    const fbCenter = fb.x;
+                    const dist = Math.abs(fbCenter - playerCenter);
+                    
+                    // Solo considerar amenazas que están cerca y cayendo
+                    if (fb.y > gameState.player.y - 200 && fb.y < gameState.player.y && dist < 100) {
+                        if (dist < minDist) {
+                            minDist = dist;
+                            closestThreat = fb;
+                            threatIsDangerous = true;
+                        }
+                    }
+                }
+            }
+            
+            for (let f of gameState.furniture) {
+                if (!f.thrown) {
+                    const playerCenter = gameState.player.x + gameState.player.width / 2;
+                    const fCenter = f.x + f.width / 2;
+                    const dist = Math.abs(fCenter - playerCenter);
+                    
+                    if (f.y > gameState.player.y - 200 && f.y < gameState.player.y && dist < 100) {
+                        if (dist < minDist) {
+                            minDist = dist;
+                            closestThreat = f;
+                            threatIsDangerous = true;
+                        }
+                    }
+                }
+            }
+            
+            // Esquivar amenazas peligrosas (solo si NO tiene resorte)
+            if (threatIsDangerous && closestThreat && Math.random() < aiSettings.dodgeChance && !gameState.springActive) {
+                const threatX = closestThreat.x + (closestThreat.width || closestThreat.size) / 2;
+                const playerCenter = gameState.player.x + gameState.player.width / 2;
+                
+                // Decidir hacia qué lado esquivar
+                if (threatX > playerCenter) {
+                    // Amenaza a la derecha, ir a la izquierda
+                    aiTargetX = Math.max(100, playerCenter - 150);
+                } else {
+                    // Amenaza a la izquierda, ir a la derecha
+                    aiTargetX = Math.min(canvas.width - 100, playerCenter + 150);
+                }
+            } else {
+                // Posicionamiento estratégico: estar debajo del jefe para mejor puntería
+                const bossCenter = gameState.boss.x + gameState.boss.width / 2;
+                aiTargetX = bossCenter + (Math.random() - 0.5) * 100;
+                aiTargetX = Math.max(50, Math.min(canvas.width - 50, aiTargetX));
+            }
+            
+            // Recoger muebles basado en probabilidad según el tipo
+            if (!gameState.heldItem) {
+                for (let i = gameState.furniture.length - 1; i >= 0; i--) {
+                    const f = gameState.furniture[i];
+                    if (!f.thrown) {
+                        const pickupChance = f.type === 'chair' ? aiSettings.pickupChanceChair : aiSettings.pickupChanceTable;
+                        
+                        if (Math.random() < pickupChance) {
+                            const fCenter = f.x + f.width / 2;
+                            const playerCenter = gameState.player.x + gameState.player.width / 2;
+                            
+                            // Verificar si está en rango para agarrar
+                            if (Math.abs(fCenter - playerCenter) < 80 && 
+                                f.y > gameState.player.y - 120 && 
+                                f.y < gameState.player.y + 30) {
+                                gameState.heldItem = f;
+                                gameState.furniture.splice(i, 1);
+                                aiThrowTimer = 0; // Resetear timer de lanzamiento
+                                break;
+                            } else if (f.y > gameState.player.y - 250 && f.y < gameState.player.y) {
+                                // Moverse hacia el mueble para agarrarlo
+                                aiTargetX = fCenter;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Usar resorte automáticamente cuando la energía está llena
+            if (gameState.aiEnergy >= gameState.maxEnergy && !gameState.springActive) {
+                gameState.springActive = true;
+                gameState.springTimer = 10000;
+                gameState.springX = gameState.player.x + 15;
+                gameState.springY = gameState.player.y - 40;
+                gameState.aiEnergy = 0;
+                updateAIEnergyUI();
+            }
+        }
+
+        function spawnGreenFragments(x, y) {
+            for (let i = 0; i < 8; i++) {
+                const angle = (Math.PI * 2 / 8) * i;
+                gameState.fireballs.push({
+                    x: x,
+                    y: y,
+                    size: 5,
+                    speed: 0,
+                    vx: Math.cos(angle) * 4,
+                    vy: Math.sin(angle) * 4 - 2,
+                    damage: 10,
+                    isFragment: true,
+                    homing: false
+                });
+            }
+        }
+
+        function spawnProjectile() {
+            const config = gameState.config;
+            let rand = Math.random();
+            
+            // Mesa
+            if (rand < config.tableChance) {
+                gameState.furniture.push({
+                    type: 'table',
+                    x: gameState.boss.x + gameState.boss.width/2 - 30,
+                    y: gameState.boss.y + gameState.boss.height,
+                    width: 60,
+                    height: 40,
+                    speed: config.furnitureSpeed || 3,
+                    damage: config.tableDamage || 10,
+                    playerDamage: config.tablePlayerDamage || 70,
+                    thrown: false,
+                    vy: 0
+                });
+            }
+            // Silla
+            else if (rand < config.tableChance + config.chairChance) {
+                gameState.furniture.push({
+                    type: 'chair',
+                    x: gameState.boss.x + gameState.boss.width/2 - 20,
+                    y: gameState.boss.y + gameState.boss.height,
+                    width: 40,
+                    height: 50,
+                    speed: config.furnitureSpeed || 3,
+                    damage: config.chairDamage || 5,
+                    playerDamage: config.chairPlayerDamage || 50,
+                    thrown: false,
+                    vy: 0
+                });
+            }
+            // Bola verde
+            else if (config.greenFireball && rand < config.tableChance + config.chairChance + config.greenFireballChance) {
+                gameState.fireballs.push({
+                    x: gameState.boss.x + gameState.boss.width/2,
+                    y: gameState.boss.y + gameState.boss.height,
+                    size: config.fireballSize,
+                    speed: config.fireballSpeed || 3.5,
+                    damage: 30,
+                    homing: false,
+                    vx: 0,
+                    vy: 0,
+                    isGreen: true,
+                    isFragment: false
+                });
+            }
+            // Bola de fuego normal
+            else {
+                gameState.fireballs.push({
+                    x: gameState.boss.x + gameState.boss.width/2,
+                    y: gameState.boss.y + gameState.boss.height,
+                    size: config.fireballSize,
+                    speed: config.fireballSpeed || 3,
+                    damage: config.fireballDamage,
+                    homing: false,
+                    vx: 0,
+                    vy: 0,
+                    isGreen: false,
+                    isFragment: false
+                });
+            }
+        }
+
+        function checkCollision(obj1, obj2) {
+            return obj1.x < obj2.x + obj2.width &&
+                   obj1.x + (obj1.width || obj1.size) > obj2.x &&
+                   obj1.y < obj2.y + obj2.height &&
+                   obj1.y + (obj1.height || obj1.size) > obj2.y;
+        }
+
+        function damageEntity(entity, damage, type) {
+            entity.health = Math.max(0, entity.health - damage);
+            
+            gameState.damageIndicators.push({
+                x: entity.x + entity.width/2,
+                y: entity.y,
+                text: '-' + damage,
+                alpha: 1,
+                color: '#ff0000'
+            });
+
+            updateHealthUI();
+        }
+
+        function addEnergy() {
+            if (bossMode) {
+                gameState.aiEnergy = Math.min(gameState.aiEnergy + 1, gameState.maxEnergy);
+                updateAIEnergyUI();
+            } else {
+                gameState.energy = Math.min(gameState.energy + 1, gameState.maxEnergy);
+                updateEnergyUI();
+            }
+        }
+
+        function updateHealthUI() {
+            if (!gameState) return;
+            const playerPercent = (gameState.player.health / gameState.player.maxHealth) * 100;
+            const bossPercent = (gameState.boss.health / gameState.boss.maxHealth) * 100;
+            
+            document.getElementById('playerHealthFill').style.width = playerPercent + '%';
+            document.getElementById('bossHealthFill').style.width = bossPercent + '%';
+            document.getElementById('playerHealthText').textContent = 
+                Math.max(0, gameState.player.health) + '/' + gameState.player.maxHealth;
+            document.getElementById('bossHealthText').textContent = 
+                Math.max(0, gameState.boss.health) + '/' + gameState.boss.maxHealth;
+        }
+
+        function updateEnergyUI() {
+            if (!gameState) return;
+            const percent = (gameState.energy / gameState.maxEnergy) * 100;
+            document.getElementById('energyFill').style.width = percent + '%';
+            
+            if (gameState.energy >= gameState.maxEnergy) {
+                document.getElementById('springBtn').style.display = 'block';
+            } else {
+                document.getElementById('springBtn').style.display = 'none';
+            }
+        }
+
+        function checkGameOver() {
+            if (gameState.player.health <= 0) {
+                endGame(false);
+            } else if (gameState.boss.health <= 0) {
+                endGame(true);
+            }
+        }
+
+        function endGame(won) {
+            gameState.gameOver = true;
+            const gameOverDiv = document.getElementById('gameOver');
+            const gameOverText = document.getElementById('gameOverText');
+            
+            if (bossMode) {
+                // En modo jefe, invertimos el resultado
+                if (won) {
+                    gameOverText.textContent = 'PERDISTE…';
+                } else {
+                    gameOverText.textContent = '¡GANASTE!';
+                }
+            } else {
+                if (won) {
+                    gameOverText.textContent = '¡GANASTE!';
+                    if (currentLevel !== 'custom' && currentLevel < 10 && currentLevel >= playerProgress.unlockedLevels) {
+                        playerProgress.unlockedLevels = currentLevel + 1;
+                    }
+                } else {
+                    gameOverText.textContent = 'PERDISTE…';
+                }
+            }
+            
+            gameOverDiv.style.display = 'block';
+            document.getElementById('throwBtn').style.display = 'none';
+            document.getElementById('exitBtn').style.display = 'none';
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (!gameState) return;
+
+            // Jefe
+            ctx.fillStyle = '#f44336';
+            ctx.fillRect(gameState.boss.x, gameState.boss.y, gameState.boss.width, gameState.boss.height);
+
+            // Jugador
+            ctx.fillStyle = '#2196F3';
+            ctx.fillRect(gameState.player.x, gameState.player.y, gameState.player.width, gameState.player.height);
+
+            // Resorte
+            if (gameState.springActive) {
+                ctx.fillStyle = '#9C27B0';
+                ctx.fillRect(gameState.springX, gameState.springY, 20, 15);
+                ctx.fillStyle = '#333';
+                ctx.font = '10px Arial';
+                ctx.fillText('⚡', gameState.springX + 5, gameState.springY + 12);
+            }
+
+            // Bolas de fuego
+            gameState.fireballs.forEach(fb => {
+                if (fb.isGreen) {
+                    ctx.fillStyle = '#00ff00';
+                } else if (fb.isFragment) {
+                    ctx.fillStyle = '#90EE90';
+                } else if (fb.homing) {
+                    ctx.fillStyle = '#FFD700';
+                } else {
+                    ctx.fillStyle = '#ff5722';
+                }
+                ctx.beginPath();
+                ctx.arc(fb.x, fb.y, fb.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // Muebles
+            gameState.furniture.forEach(f => {
+                ctx.fillStyle = '#8B4513';
+                ctx.fillRect(f.x, f.y, f.width, f.height);
+                ctx.fillStyle = '#FFF';
+                ctx.font = '12px Arial';
+                ctx.fillText(f.type === 'chair' ? '🪑' : '🪵', f.x + 10, f.y + 25);
+            });
+
+            // Item sostenido
+            if (gameState.heldItem) {
+                ctx.fillStyle = '#8B4513';
+                ctx.fillRect(gameState.player.x + 10, gameState.player.y - 30, 
+                    gameState.heldItem.width, gameState.heldItem.height);
+            }
+
+            // Indicadores de daño
+            gameState.damageIndicators.forEach(di => {
+                ctx.save();
+                ctx.globalAlpha = di.alpha;
+                ctx.fillStyle = di.color;
+                ctx.font = 'bold 20px Arial';
+                ctx.fillText(di.text, di.x, di.y);
+                ctx.restore();
+            });
+        }
+
+        let lastTime = 0;
+        function gameLoop(timestamp) {
+            const deltaTime = timestamp - lastTime;
+            lastTime = timestamp;
+
+            update(deltaTime);
+            draw();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        requestAnimationFrame(gameLoop);
+    </script>
+</body>
+</html>
